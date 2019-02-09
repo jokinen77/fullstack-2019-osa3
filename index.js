@@ -35,7 +35,7 @@ persons = [
   }
 ]
 
-app.get('/', (req, res) => {
+app.get('/test', (req, res) => {
   res.send('<h1>Hello World!</h1>')
 })
 
