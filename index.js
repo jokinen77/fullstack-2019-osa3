@@ -10,6 +10,7 @@ morgan.token('post-data', function (req, res) { return req.method === "POST" ? J
 app.use(bodyParser.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :post-data'))
 app.use(cors())
+app.use(express.static('frontend/build'))
 
 persons = [
   {
