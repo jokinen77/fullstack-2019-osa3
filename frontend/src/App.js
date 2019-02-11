@@ -85,13 +85,10 @@ const App = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault()
-
     const existingPerson = persons.find(p => p.name === newName)
 
     if (existingPerson) {
       const ok = window.confirm(`${newName} on jo luettelossa, korvataanko vanha numero uudella`)
-
-
 
       if (ok) {
         personService
@@ -112,11 +109,9 @@ const App = () => {
           })
           */
       }
-
       return
     }
-
-  personService
+    personService
       .create({
         name: newName,
         number: newNumber
@@ -126,6 +121,10 @@ const App = () => {
         setNewName('')
         setNewNumber('')
         notify(`Lisättiin ${createdPerson.name}`)
+      })
+      .catch(error => {
+        const errorMessage = error.response.data.error
+        notify(`${errorMessage}`, 'error')
       })
   }
 

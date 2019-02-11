@@ -1,101 +1,112 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-var morgan = require('morgan')
+const morgan = require('morgan')
 const cors = require('cors')
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config()
+}
+const Person = require('./models/person')
+const logger = morgan(':method :url :status :res[content-length] - :response-time ms :post-data')
 
 const app = express()
 
 morgan.token('post-data', function (req, res) { return req.method === "POST" ? JSON.stringify(req.body) : " " })
 
-app.use(bodyParser.json())
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :post-data'))
-app.use(cors())
 app.use(express.static('frontend/build'))
+app.use(bodyParser.json())
+app.use(logger)
+app.use(cors())
 
-persons = [
-  {
-    "name": "Arto Hellas",
-    "number": "040-123456",
-    "id": 1
-  },
-  {
-    "name": "Martti Tienari",
-    "number": "040-123456",
-    "id": 2
-  },
-  {
-    "name": "Arto Järvinen",
-    "number": "040-123456",
-    "id": 3
-  },
-  {
-    "name": "Lea Kutvonen",
-    "number": "040-123456",
-    "id": 4
-  }
-]
+persons = []
 
-app.get('/test', (req, res) => {
+app.get('/test', (req, res, next) => {
   res.send('<h1>Hello World!</h1>')
 })
 
-app.get('/api/persons', (req, res) => {
-  res.json(persons)
+app.get('/api/persons', (req, res, next) => {
+  Person.find({})
+  .then(result => {
+    persons = result
+    res.json(persons)
+  })
+  .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const content = req.body
-  console.log('content name', content.name);
-  if (content.name === undefined || !content.name) {
-    return res.status(400).json({
-      error: 'name missing'
-    })
-  }
 
-  if (content.number === undefined || !content.number) {
-    return res.status(400).json({
-      error: 'number missing'
-    })
-  }
-
-  if (persons.map(p => p.name).includes(content.name)) {
-    return res.status(400).json({
-      error: 'person is already in database'
-    })
-  }
-
-  person = {
-    "name": content.name || "No name",
-    "number": content.number || "No number",
+  person = new Person({
+    "name": content.name,
+    "number": content.number,
     "id": generateId()
-  }
-  persons = persons.concat(person)
-  res.json(person)
+  })
+  person.save()
+  .then(savedPerson => {
+    res.json(savedPerson)
+  })
+  .catch(error => next(error))
 })
 
-app.get('/info', (req, res) => {
+app.get('/info', (req, res, next) => {
   const count = persons.length
   const date = new Date()
   res.send(`Puhelinluettelossa on ${count} henkilön tiedot<br>${date}`)
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(person => person.id === id)
-
-  if (person) {
-    res.json(person)
-  } else {
-    res.status(404).end()
-  }
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(request.params.id)
+  .then(person => {
+    if (person) {
+      res.json(person.toJSON())
+    } else {
+      res.status(404).end()
+    }
+  })
+  .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  persons = persons.filter(person => person.id !== id);
-
-  res.status(204).end();
+app.delete('/api/persons/:id', (req, res, next) => {
+  Person.findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
 });
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+
+  const person = {
+    name: body.name,
+    number: body.number,
+  }
+
+  Person.findByIdAndUpdate(req.params.id, person)
+    .then(updatedPerson => {
+      res.json(updatedPerson.toJSON())
+    })
+    .catch(error => next(error))
+})
+
+const unknownEndpoint = (req, res, next) => {
+  res.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const generateId = () => Math.floor(Math.random() * 1000000000)
 
