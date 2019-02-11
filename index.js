@@ -77,8 +77,8 @@ app.put('/api/persons/:id', (req, res, next) => {
   const body = req.body
 
   const person = new Person({
-    "name": content.name,
-    "number": content.number,
+    "name": body.name,
+    "number": body.number,
     "id": req.params.id
   })
 
