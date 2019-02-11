@@ -76,12 +76,13 @@ app.delete('/api/persons/:id', (req, res, next) => {
 app.put('/api/persons/:id', (req, res, next) => {
   const body = req.body
 
-  const person = {
-    name: body.name,
-    number: body.number,
-  }
+  const person = new Person({
+    "name": content.name,
+    "number": content.number,
+    "id": req.params.id
+  })
 
-  Person.findByIdAndUpdate(req.params.id, person)
+  Person.findByIdAndUpdate(person.id, person)
     .then(updatedPerson => {
       res.json(updatedPerson.toJSON())
     })
