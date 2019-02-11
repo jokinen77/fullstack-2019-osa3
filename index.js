@@ -77,12 +77,11 @@ app.put('/api/persons/:id', (req, res, next) => {
   const body = req.body
 
   const person = new Person({
-    "name": body.name,
-    "number": body.number,
-    "id": req.params.id
+    name: body.name,
+    number: body.number
   })
 
-  Person.findByIdAndUpdate(person.id, person)
+  Person.findByIdAndUpdate(req.params.id, person.toJSON())
     .then(updatedPerson => {
       res.json(updatedPerson.toJSON())
     })
